@@ -1,0 +1,51 @@
+#!/bin/bash
+set -e
+
+function get_phab_id () {
+    phabcomment=$(git show -s $1 | grep -F 'Differential Revision: https://phabricator.')
+    echo ${phabcomment##*/}
+}
+
+function get_branch () {
+  branches=($(git show-ref --heads | grep $1 | cut -d'/' -f 3))
+  echo ${branches[0]}
+}
+
+phabid=$(get_phab_id HEAD)
+
+commit=""
+parent=HEAD
+base=""
+while true ; do
+  revl=($(git rev-list --parents -n 1 $parent))
+  if [[ "$parent" == "HEAD" ]] ; then
+    commit=${revl[0]}
+  fi
+
+  # stop walk if we find a parent commit with a different phabid
+  # also stop walk if we reach the HEAD commit of the master branch
+  # this is useful because sometimes platform people bypass phab...
+  parent=${revl[1]}
+  pphid=$(get_phab_id $parent)
+  if [[ "$pphid" != "" ]] && [[ "$pphid" != "$phabid" ]] || [[ "$(get_branch $parent)" == "master" ]] ; then
+    base=$parent
+    break
+  fi
+
+  # more than one parent is bad news...  
+  if [ ${#revl[@]} -gt 2 ] ; then
+    echo "Sorry, I can't deal with merge commits..."
+    exit 1
+  fi
+done
+
+cb=$(get_branch $commit)
+bb=$(get_branch $base)
+
+if [[ "$phabid" == "" ]] ; then
+  echo "Creating new diff as ${bb}...${cb}"
+  arc diff --create ${bb}
+else
+  echo "Updating ${phabid} as ${bb}...${cb}"
+  arc diff --update ${phabid} ${bb} "$@" && git push -f origin $cb
+fi
