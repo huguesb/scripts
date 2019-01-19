@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# NB: surgery of libfuturize to prevent future import of division, which can cause severe compat break
+FIX=$(dirname $(which futurize))/../lib/python2.7/site-packages/libfuturize/fixes/fix_add__future__imports_except_unicode_literals.py
+
+cat $FIX | grep -v -F 'division' > $FIX.fix
+mv $FIX.fix $FIX
+rm ${FIX}c
+
+FUTURIZE_ARGS="-w -n --no-diffs --all-imports --stage1 -f libfuturize.fixes.fix_xrange_with_import"
+
+toplevel=$1
+remaining=0
+for d in affirm tests ; do
+  path=$toplevel/$d/$toplevel
+  find $path -name '*.py' | xargs futurize $FUTURIZE_ARGS
+  remaining=$((remaining + $(pylint --py3k --reports=n $path | grep -v -F '************* Module' | wc -l) ))
+done
+
+futurize $FUTURIZE_ARGS $toplevel/setup.py
+
+echo $remaining remaining pylint warnings
