@@ -11,6 +11,11 @@ function get_branch () {
   echo ${branches[0]}
 }
 
+function is_master_or_develop () {
+  b=$(get_branch $1)
+  [[ "$b" == "master" ]] || [[ "$b" == "develop" ]]
+}
+
 phabid=$(get_phab_id HEAD)
 
 commit=""
@@ -27,7 +32,7 @@ while true ; do
   # this is useful because sometimes platform people bypass phab...
   parent=${revl[1]}
   pphid=$(get_phab_id $parent)
-  if [[ "$pphid" != "" ]] && [[ "$pphid" != "$phabid" ]] || [[ "$(get_branch $parent)" == "master" ]] ; then
+  if [[ "$pphid" != "" ]] && [[ "$pphid" != "$phabid" ]] || is_master_or_develop $parent ; then
     base=$parent
     break
   fi
@@ -47,5 +52,6 @@ if [[ "$phabid" == "" ]] ; then
   arc diff --create ${bb}
 else
   echo "Updating ${phabid} as ${bb}...${cb}"
-  arc diff --update ${phabid} ${bb} "$@" && git push -f origin $cb
+  arc diff --update ${phabid} ${bb} "$@"
 fi
+git push -f origin $cb
