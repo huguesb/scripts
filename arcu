@@ -7,8 +7,13 @@ function get_phab_id () {
 }
 
 function get_branch () {
-  branches=($(git show-ref --heads | grep $1 | cut -d'/' -f 3))
-  echo ${branches[0]}
+  branches=($(git show-ref --heads | grep -F $1 | cut -d'/' -f 3-))
+  branch=${branches[0]}
+  if [[ "${branch}" == "" ]] ; then
+    echo $1
+  else
+    echo ${branch}
+  fi
 }
 
 function is_master_or_develop () {
