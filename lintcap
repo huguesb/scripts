@@ -3,7 +3,7 @@
 for tld in "$@" ; do
 	pylintcap=$(( $(pylint --py3k --reports=n $tld/setup.py $tld/affirm $tld/tests 2>/dev/null | grep -v -F '***' | wc -l) ))
 	echo ${tld} : ${pylintcap} lint warnings left
-	flake8cap=$(( $(flake8 --max-line-length=120 $tld/ | grep -v -F '/alembic/' | wc -l) ))
+	flake8cap=$(( $(flake8 --max-line-length=120 --exclude=alembic,legacy $tld/ | wc -l) ))
 	echo ${tld} : ${flake8cap} flake8 warnings left
 	sed -i '' -E \
 		-e "s/(maxPylintErrorCount:) *[0-9]+,/\1 ${pylintcap},/" \
