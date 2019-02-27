@@ -9,11 +9,20 @@ function get_phab_id () {
 function get_branch () {
   branches=($(git show-ref --heads | grep -F $1 | cut -d'/' -f 3-))
   branch=${branches[0]}
+  # no branch: return commit id
   if [[ "${branch}" == "" ]] ; then
     echo $1
-  else
-    echo ${branch}
+    return
   fi
+  # pick master or develop preferentially
+  for b in "${branches[@]}" ; do
+    if [[ "${b}" == "master" ]] || [[ "${b}" == "develop" ]] ; then
+        echo ${b}
+        return
+    fi
+  done
+  # otherwise, pick first branch
+  echo ${branch}
 }
 
 function is_master_or_develop () {
